@@ -1,59 +1,410 @@
-<div class="container">
-  <h1>Welcome to Auth App</h1>
-  
-  <div *ngIf="user$ | async as user; else loginRegister">
-    <h3>Welcome, {{ user.email }}!</h3>
-    <button (click)="signOut()">Sign Out</button>
+<!-- Navigation Bar -->
+<nav class="navbar" *ngIf="user$ | async as user">
+  <div class="nav-container">
+    <div class="nav-brand">
+      <h2>🏋️ Fitness Tracker</h2>
+    </div>
+    <div class="nav-links">
+      <button (click)="activeSection.set('dashboard')" 
+              [class.active]="activeSection() === 'dashboard'" 
+              class="nav-link">
+        📊 Dashboard
+      </button>
+      <button (click)="activeSection.set('workouts')" 
+              [class.active]="activeSection() === 'workouts'" 
+              class="nav-link">
+        💪 Workouts
+      </button>
+      <button (click)="activeSection.set('location')" 
+              [class.active]="activeSection() === 'location'" 
+              class="nav-link">
+        📍 Location
+      </button>
+      <button (click)="activeSection.set('profile')" 
+              [class.active]="activeSection() === 'profile'" 
+              class="nav-link">
+        👤 Profile
+      </button>
+    </div>
+    <div class="nav-user">
+      <span>Hi, {{ getDisplayName(user) }}!</span>
+      <button (click)="signOut()" class="logout-btn">🚪 Logout</button>
+    </div>
   </div>
+</nav>
 
-  <ng-template #loginRegister>
+<div class="container">
+  <!-- Show login/register when not authenticated -->
+  <div *ngIf="!(user$ | async)" class="auth-page">
+    <div class="auth-header">
+      <h1>🏋️ Welcome to Fitness Tracker</h1>
+      <p>Track your workouts, save locations, and achieve your fitness goals!</p>
+    </div>
+    
     <div class="auth-container">
       <!-- Login Form -->
-      <div class="form-section">
-        <h2>Login</h2>
-        <form (ngSubmit)="onLogin()">
-          <input 
-            type="email" 
-            [(ngModel)]="loginEmail" 
-            name="loginEmail"
-            placeholder="Email" 
-            required
-          >
-          <input 
-            type="password" 
-            [(ngModel)]="loginPassword" 
-            name="loginPassword"
-            placeholder="Password" 
-            required
-          >
-          <button type="submit">Login</button>
+      <div class="form-section login-section">
+        <div class="form-header">
+          <h2>🔐 Login</h2>
+          <p>Welcome back! Sign in to continue.</p>
+        </div>
+        <form (ngSubmit)="onLogin()" #loginForm="ngForm">
+          <div class="form-group">
+            <label>📧 Email Address</label>
+            <input 
+              type="email" 
+              [(ngModel)]="loginEmail" 
+              name="loginEmail"
+              placeholder="Enter your email" 
+              required
+            >
+          </div>
+          <div class="form-group">
+            <label>🔒 Password</label>
+            <input 
+              type="password" 
+              [(ngModel)]="loginPassword" 
+              name="loginPassword"
+              placeholder="Enter your password" 
+              required
+            >
+          </div>
+          <button type="submit" [disabled]="!loginForm.form.valid" class="btn-login">
+            🚀 Login
+          </button>
         </form>
-        <p *ngIf="loginError" class="error">{{ loginError }}</p>
+        <p *ngIf="loginError()" class="error">{{ loginError() }}</p>
       </div>
 
       <!-- Register Form -->
-      <div class="form-section">
-        <h2>Register</h2>
-        <form (ngSubmit)="onRegister()">
-          <input 
-            type="email" 
-            [(ngModel)]="registerEmail" 
-            name="registerEmail"
-            placeholder="Email" 
-            required
-          >
-          <input 
-            type="password" 
-            [(ngModel)]="registerPassword" 
-            name="registerPassword"
-            placeholder="Password" 
-            required
-          >
-          <button type="submit">Register</button>
+      <div class="form-section register-section">
+        <div class="form-header">
+          <h2>✨ Create Account</h2>
+          <p>Join us and start your fitness journey!</p>
+        </div>
+        <form (ngSubmit)="onRegister()" #registerForm="ngForm">
+          <div class="form-group">
+            <label>👤 Username</label>
+            <input 
+              type="text" 
+              [(ngModel)]="registerUsername" 
+              name="registerUsername"
+              placeholder="Choose a username" 
+              required
+              minlength="3"
+            >
+            <small>Minimum 3 characters</small>
+          </div>
+          <div class="form-group">
+            <label>📧 Email Address</label>
+            <input 
+              type="email" 
+              [(ngModel)]="registerEmail" 
+              name="registerEmail"
+              placeholder="Enter your email" 
+              required
+            >
+          </div>
+          <div class="form-group">
+            <label>🔒 Password</label>
+            <input 
+              type="password" 
+              [(ngModel)]="registerPassword" 
+              name="registerPassword"
+              placeholder="Create a password" 
+              required
+              minlength="6"
+            >
+            <small>Minimum 6 characters</small>
+          </div>
+          <button type="submit" [disabled]="!registerForm.form.valid" class="btn-register">
+            🎯 Create Account
+          </button>
         </form>
-        <p *ngIf="registerError" class="error">{{ registerError }}</p>
-        <p *ngIf="registerSuccess" class="success">{{ registerSuccess }}</p>
+        <p *ngIf="registerError()" class="error">{{ registerError() }}</p>
+        <p *ngIf="registerSuccess()" class="success">{{ registerSuccess() }}</p>
       </div>
     </div>
-  </ng-template>
+  </div>
+
+  <!-- Show different sections when authenticated -->
+  <div *ngIf="user$ | async as user">
+
+    <!-- Dashboard Section -->
+    <div *ngIf="activeSection() === 'dashboard'" class="section-content">
+      <div class="dashboard-header">
+        <div class="welcome-card">
+          <h1>Welcome back, {{ getDisplayName(user) }}! 👋</h1>
+          <p class="welcome-subtitle">Ready to crush your fitness goals today?</p>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">💪</div>
+            <div class="stat-info">
+              <h3>{{ workouts().length }}</h3>
+              <p>Total Workouts</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📍</div>
+            <div class="stat-info">
+              <h3>{{ savedLocations().length }}</h3>
+              <p>Saved Locations</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⭐</div>
+            <div class="stat-info">
+              <h3>Member</h3>
+              <p>Account Type</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="quick-actions-grid">
+        <div class="action-card" (click)="activeSection.set('workouts')">
+          <div class="action-icon">💪</div>
+          <h4>Manage Workouts</h4>
+          <p>Add, view, and track your exercise routines</p>
+          <button class="btn-action">View Workouts →</button>
+        </div>
+        
+        <div class="action-card" (click)="activeSection.set('location')">
+          <div class="action-icon">📍</div>
+          <h4>Location Services</h4>
+          <p>Save and manage your workout locations<br><br></p>
+          <div style="height: 20px;"></div>
+          <button class="btn-action">Check Location →</button>
+        </div>
+        
+        <div class="action-card" (click)="activeSection.set('profile')">
+          <div class="action-icon">👤</div>
+          <h4>Profile Settings</h4>
+          <p>Update your profile and account settings</p>
+          <button class="btn-action">Edit Profile →</button>
+        </div>
+      </div>
+
+      <div class="recent-activity">
+        <h3>Recent Activity</h3>
+        <div *ngIf="workouts().length > 0" class="activity-list">
+          <div *ngFor="let workout of workouts().slice(0, 3)" class="activity-item">
+            <span class="activity-icon">{{ getWorkoutIcon(workout.type) }}</span>
+            <div class="activity-details">
+              <strong>{{ workout.name }}</strong>
+              <span>{{ workout.duration }}min • {{ workout.date | date:'MMM d' }}</span>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="workouts().length === 0" class="no-activity">
+          <p>No recent workouts. Start by adding your first workout!</p>
+          <button (click)="activeSection.set('workouts')" class="btn-primary">Add Workout</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workouts Section -->
+    <div *ngIf="activeSection() === 'workouts'" class="section-content">
+      <div class="section-header">
+        <h2>💪 Your Workouts</h2>
+        <p>Track and manage your exercise routines</p>
+      </div>
+      
+      <div class="workout-actions">
+        <button (click)="showAddWorkout.set(true)" class="btn-primary">
+          ➕ Add New Workout
+        </button>
+        <button (click)="loadWorkouts()" class="btn-secondary">🔄 Refresh</button>
+      </div>
+      
+      <!-- Add Workout Modal -->
+      <div *ngIf="showAddWorkout()" class="modal-overlay">
+        <div class="modal">
+          <h3>➕ Add New Workout</h3>
+          <form (ngSubmit)="addWorkout()" #workoutForm="ngForm">
+            <div class="form-group">
+              <label>Workout Name</label>
+              <input 
+                type="text" 
+                [(ngModel)]="newWorkout().name" 
+                name="workoutName"
+                placeholder="e.g., Morning Run, Gym Session"
+                required
+              >
+            </div>
+            <div class="form-group">
+              <label>Type</label>
+              <select [(ngModel)]="newWorkout().type" name="workoutType" required>
+                <option value="">Select type</option>
+                <option value="Cardio">🏃 Cardio</option>
+                <option value="Strength">💪 Strength</option>
+                <option value="Yoga">🧘 Yoga</option>
+                <option value="HIIT">⚡ HIIT</option>
+                <option value="Sports">🏀 Sports</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Duration (minutes)</label>
+              <input 
+                type="number" 
+                [(ngModel)]="newWorkout().duration" 
+                name="workoutDuration"
+                placeholder="30"
+                min="1"
+                required
+              >
+            </div>
+            <div class="form-group">
+              <label>Notes (optional)</label>
+              <textarea 
+                [(ngModel)]="newWorkout().notes" 
+                name="workoutNotes"
+                placeholder="How did it go?"
+                rows="3"
+              ></textarea>
+            </div>
+            <div class="modal-actions">
+              <button type="button" (click)="showAddWorkout.set(false)" class="btn-secondary">Cancel</button>
+              <button type="submit" [disabled]="!workoutForm.form.valid" class="btn-primary">Save Workout</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <div *ngIf="workouts().length > 0" class="workouts-grid">
+        <div *ngFor="let workout of workouts()" class="workout-card">
+          <div class="workout-header">
+            <h4>{{ workout.name }}</h4>
+            <span class="workout-type {{ workout.type.toLowerCase() }}">{{ workout.type }}</span>
+          </div>
+          <div class="workout-details">
+            <p><span class="detail-icon">⏱️</span> {{ workout.duration }} minutes</p>
+            <p><span class="detail-icon">📅</span> {{ workout.date | date:'medium' }}</p>
+            <p *ngIf="workout.notes"><span class="detail-icon">📝</span> {{ workout.notes }}</p>
+          </div>
+          <button (click)="deleteWorkout(workout.id)" class="btn-danger">🗑️ Delete</button>
+        </div>
+      </div>
+      
+      <div *ngIf="workouts().length === 0" class="no-data">
+        <div class="empty-state">
+          <div class="empty-icon">💪</div>
+          <h3>No workouts yet</h3>
+          <p>Start your fitness journey by adding your first workout!</p>
+          <button (click)="showAddWorkout.set(true)" class="btn-primary">Add Your First Workout</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Location Section -->
+    <div *ngIf="activeSection() === 'location'" class="section-content">
+      <div class="section-header">
+        <h2>📍 Location Services</h2>
+        <p>Save and manage your workout locations</p>
+      </div>
+      
+      <div class="location-actions">
+        <button (click)="getCurrentLocation()" class="btn-primary" [disabled]="locationLoading()">
+          {{ locationLoading() ? '🔄 Getting Location...' : '📍 Get My Location' }}
+        </button>
+        <button (click)="saveLocation()" 
+                [disabled]="!currentLocation()" 
+                class="btn-secondary">
+          💾 Save Current Location
+        </button>
+      </div>
+
+      <div *ngIf="currentLocation()" class="current-location-card">
+        <h4>📍 Current Location</h4>
+        <div class="location-details">
+          <p><strong>Latitude:</strong> {{ currentLocation()!.latitude | number:'1.4-4' }}</p>
+          <p><strong>Longitude:</strong> {{ currentLocation()!.longitude | number:'1.4-4' }}</p>
+          <p><strong>Accuracy:</strong> {{ currentLocation()!.accuracy }} meters</p>
+          <p><strong>Last Updated:</strong> {{ currentLocation()!.timestamp | date:'medium' }}</p>
+        </div>
+      </div>
+
+      <div *ngIf="locationError()" class="error-card">
+        <h4>❌ Location Error</h4>
+        <p>{{ locationError() }}</p>
+      </div>
+
+      <div *ngIf="savedLocations().length > 0" class="saved-locations-section">
+        <h3>📚 Saved Locations</h3>
+        <div class="locations-grid">
+          <div *ngFor="let location of savedLocations()" class="location-card">
+            <div class="location-info">
+              <p class="coordinates">{{ location.latitude | number:'1.4-4' }}, {{ location.longitude | number:'1.4-4' }}</p>
+              <p class="timestamp">{{ location.savedAt | date:'medium' }}</p>
+            </div>
+            <button (click)="deleteLocation(location.id)" class="btn-danger">🗑️</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Section -->
+    <div *ngIf="activeSection() === 'profile'" class="section-content">
+      <div class="profile-header">
+        <div class="profile-avatar-section">
+          <div class="avatar-container">
+            <div *ngIf="!userProfilePic()" class="avatar-placeholder">
+              👤
+            </div>
+            <img *ngIf="userProfilePic()" [src]="userProfilePic()" class="avatar-image" alt="Profile">
+            <input type="file" #fileInput (change)="onFileSelected($event)" accept="image/*" style="display: none;">
+            <button (click)="fileInput.click()" class="btn-avatar-upload">
+              📷 Change Photo
+            </button>
+          </div>
+        </div>
+        
+        <div class="profile-info">
+          <h2>{{ getDisplayName(user) }}</h2>
+          <p class="user-email">{{ user.email }}</p>
+          <div class="profile-stats">
+            <span class="member-status">⭐ Registered Member</span>
+            <span>Member since {{ getMemberSince() }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-actions-grid">
+        <div class="profile-action-card" (click)="showEditProfile.set(true)">
+          <div class="action-icon">✏️</div>
+          <div class="action-content">
+            <h4>Edit Profile</h4>
+            <p>Update your username and personal information</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Profile Modal -->
+      <div *ngIf="showEditProfile()" class="modal-overlay">
+        <div class="modal">
+          <h3>✏️ Edit Profile</h3>
+          <form (ngSubmit)="onUpdateProfile()" #editProfileForm="ngForm">
+            <div class="form-group">
+              <label>Username</label>
+              <input 
+                type="text" 
+                [(ngModel)]="editUsername" 
+                name="editUsername"
+                required
+                minlength="3"
+              >
+            </div>
+            <div class="modal-actions">
+              <button type="button" (click)="showEditProfile.set(false)" class="btn-secondary">Cancel</button>
+              <button type="submit" [disabled]="!editProfileForm.form.valid" class="btn-primary">Save Changes</button>
+            </div>
+          </form>
+          <p *ngIf="profileUpdateError()" class="error">{{ profileUpdateError() }}</p>
+          <p *ngIf="profileUpdateSuccess()" class="success">{{ profileUpdateSuccess() }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

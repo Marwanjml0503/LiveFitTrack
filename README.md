@@ -1,50 +1,75 @@
-# Angular Firebase Authentication App
+# TaskTrack - Mobile Task Management App
 
-A simple login and register application built with Angular and Firebase Authentication.
+## Application Overview
+LiveFitTrack is a beautiful mobile fitness management application built with Ionic Angular and Firebase, developed for Raffles University Mobile Application Development Assignment 2.
 
 ## Features
+-  *User Authentication* - Simple login system
+-  *CRUD Operations* - Create, Read, Update, Delete tasks
+-  *Real-time Data Sync* - Firebase Firestore integration
+-  *Client-side Caching* - Offline data persistence
+-  *Mobile-first UI* - Ionic components and responsive design
+-  *Task Management* - Priority levels, due dates, status tracking
 
-- 🔐 User Registration with username, email, and password
-- 🔑 User Login with email and password
-- 👤 Profile Management
-  - Edit username
-  - Change password
-  - Delete account
-- 🎨 Clean and simple user interface
-- 💾 Data stored in Firebase Firestore
+## Technology Stack
+- *Frontend*: Ionic Angular
+- *Backend*: Firebase Firestore
+- *Authentication*: Demo login system
+- *Caching*: LocalStorage implementation
+- *UI Framework*: Ionic Components
 
-## Tech Stack
+## Installation & Setup
 
-- **Frontend**: Angular 17+
-- **Authentication**: Firebase Auth
-- **Database**: Firebase Firestore
-- **Styling**: CSS
+### Prerequisites
+- Node.js (v16 or higher)
+- npm or yarn
 
-## Setup Instructions
+### Steps to Run
+1. *Download and extract* the firebaseapp.zip file
+2. *Open terminal/command prompt* in the extracted project directory
+3. *Install dependencies*:
+   bash
+   npm install
+   
+4. *Run the application*:
+   bash
+   ionic serve
+   
+5. *Open browser* and navigate to http://localhost:8100
 
-### 1. Firebase Setup
+## Demo Credentials
+- *Email*: *****@.com
+- *Password*: 123456
 
-1. Create a new project at [Firebase Console](https://console.firebase.google.com/)
-2. Enable Authentication:
-   - Go to **Authentication** → **Sign-in method**
-   - Enable **Email/Password** provider
-3. Enable Firestore:
-   - Go to **Firestore Database**
-   - Create database in **test mode**
+## Assignment Requirements Fulfilled
 
-### 2. Environment Configuration
+### Task 1: Firebase Integration 
+- Firebase project setup and configuration
+- Firestore database in test mode
+- Real-time data synchronization
 
-Update `src/environments/environment.ts` with your Firebase config:
+### Task 2: CRUD Operations 
+- *Create*: Add new tasks to Firestore
+- *Read*: Real-time task list display
+- *Update*: Edit task status and details
+- *Delete*: Swipe to delete tasks
 
-```typescript
-export const environment = {
-  production: false,
-  firebaseConfig: {
-    apiKey: "your-api-key",
-    authDomain: "your-project.firebaseapp.com",
-    projectId: "your-project-id",
-    storageBucket: "your-project.appspot.com",
-    messagingSenderId: "your-sender-id",
-    appId: "your-app-id"
-  }
-};
+### Task 3: Client-side Caching 
+- LocalStorage implementation
+- Instant data load on app startup
+- Offline viewing capability
+
+## Project Structure
+
+tasktrack-app/
+├── src/
+│   ├── app/
+│   │   ├── home/                 # Main application page
+│   │   ├── services/            # Task and storage services
+│   │   └── environments/        # Firebase configuration
+│   └── assets/                  # Static resources
+├── package.json                 # Dependencies
+├── angular.json                # Angular configuration
+├── ionic.config.json           # Ionic configuration
+└── tsconfig.json               # TypeScript configuration
+

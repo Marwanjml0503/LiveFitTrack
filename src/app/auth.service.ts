@@ -2,216 +2,253 @@ import { Injectable, inject } from '@angular/core';
 import { 
   Auth, 
   createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
+  signInWithEmailAndPassword,
   signOut,
-  authState,
-  deleteUser,
-  updatePassword,
-  EmailAuthProvider,
-  reauthenticateWithCredential
+  updateProfile,
+  user
 } from '@angular/fire/auth';
-import { Firestore, doc, setDoc, getDoc, updateDoc, deleteDoc } from '@angular/fire/firestore';
-import { Observable, of } from 'rxjs';
-import { switchMap, catchError } from 'rxjs/operators';
+import { 
+  Firestore, 
+  collection, 
+  doc, 
+  addDoc, 
+  getDocs, 
+  deleteDoc,
+  setDoc,
+  getDoc,
+  query, 
+  orderBy 
+} from '@angular/fire/firestore';
+import { Router } from '@angular/router';
+import { Observable } from 'rxjs';
+
+export interface User {
+  uid: string;
+  email: string;
+  username: string;
+  displayName: string;
+  createdAt: Date;
+}
+
+export interface Workout {
+  id: string;
+  name: string;
+  type: string;
+  duration: number;
+  notes?: string;
+  date: Date | any;
+}
+
+export interface Location {
+  id: string;
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  timestamp: Date | any;
+  savedAt: Date | any;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private auth: Auth = inject(Auth);
-  private firestore: Firestore = inject(Firestore);
+  private auth = inject(Auth);
+  private firestore = inject(Firestore);
+  private router = inject(Router);
 
-  // Sign up with email, password, and username
-  async signUp(email: string, password: string, username: string) {
+  user$ = user(this.auth);
+
+  // Authentication Methods
+  async register(email: string, password: string, username: string): Promise<void> {
     try {
-      // Create user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(this.auth, email, password);
       const user = userCredential.user;
       
-      // Store user profile in Firestore
-      await setDoc(doc(this.firestore, 'users', user.uid), {
-        username: username,
+      // Update profile with display name
+      await updateProfile(user, { displayName: username });
+      
+      // Create user document in Firestore to store the username
+      const userDocRef = doc(this.firestore, 'users', user.uid);
+      await setDoc(userDocRef, {
+        uid: user.uid,
         email: email,
-        createdAt: new Date(),
-        lastLogin: new Date()
+        username: username,
+        displayName: username,
+        createdAt: new Date()
       });
       
-      return userCredential;
-    } catch (error) {
+      console.log('User registered and document created with username:', username);
+    } catch (error: any) {
+      console.error('Registration error:', error);
       throw error;
     }
   }
 
-  // Sign in with email/password
-  async signIn(email: string, password: string) {
+  async login(email: string, password: string): Promise<void> {
     try {
-      const userCredential = await signInWithEmailAndPassword(this.auth, email, password);
-      const user = userCredential.user;
-      
-      // Update last login time in Firestore
-      await setDoc(doc(this.firestore, 'users', user.uid), {
-        lastLogin: new Date()
-      }, { merge: true });
-      
-      return userCredential;
-    } catch (error) {
+      await signInWithEmailAndPassword(this.auth, email, password);
+    } catch (error: any) {
+      console.error('Login error:', error);
       throw error;
     }
   }
 
-  // Sign out
-  async signOut() {
+  async logout(): Promise<void> {
     try {
       await signOut(this.auth);
-    } catch (error) {
+      this.router.navigate(['/']);
+    } catch (error: any) {
+      console.error('Logout error:', error);
       throw error;
     }
   }
 
-  // Get current user with username - RELIABLE VERSION
-  getCurrentUser(): Observable<any> {
-    return authState(this.auth).pipe(
-      switchMap(user => {
-        if (user) {
-          return new Observable(subscriber => {
-            // Small delay to ensure Firestore is ready
-            setTimeout(() => {
-              this.loadUserData(user.uid, user.email!)
-                .then(userData => {
-                  subscriber.next(userData);
-                  subscriber.complete();
-                })
-                .catch(error => {
-                  console.error('Error loading user data:', error);
-                  // Fallback user data
-                  subscriber.next({
-                    uid: user.uid,
-                    email: user.email,
-                    username: user.email?.split('@')[0] || 'user',
-                    createdAt: new Date(),
-                    lastLogin: new Date()
-                  });
-                  subscriber.complete();
-                });
-            }, 100);
-          });
-        } else {
-          return of(null);
-        }
-      }),
-      catchError(error => {
-        console.error('Error in user observable:', error);
-        return of(null);
-      })
-    );
-  }
-
-  // Helper method to load user data with retry
-  private async loadUserData(uid: string, email: string): Promise<any> {
+  // User Data Methods
+  async getUserData(userId: string): Promise<User | null> {
     try {
-      const userDoc = await getDoc(doc(this.firestore, 'users', uid));
+      const userDocRef = doc(this.firestore, 'users', userId);
+      const userDoc = await getDoc(userDocRef);
       
       if (userDoc.exists()) {
-        const userData = userDoc.data();
+        const data = userDoc.data();
         return {
-          uid: uid,
-          email: email,
-          username: userData['username'],
-          createdAt: userData['createdAt'],
-          lastLogin: userData['lastLogin']
-        };
+          uid: data['uid'],
+          email: data['email'],
+          username: data['username'],
+          displayName: data['displayName'],
+          createdAt: data['createdAt']?.toDate ? data['createdAt'].toDate() : data['createdAt']
+        } as User;
       } else {
-        // If no user document exists, create one and retry
-        console.log('User document not found, creating one...');
-        await this.createUserDocument(uid, email, email.split('@')[0]);
-        
-        // Retry after creating the document
-        const retryDoc = await getDoc(doc(this.firestore, 'users', uid));
-        if (retryDoc.exists()) {
-          const userData = retryDoc.data();
-          return {
-            uid: uid,
-            email: email,
-            username: userData['username'],
-            createdAt: userData['createdAt'],
-            lastLogin: userData['lastLogin']
-          };
-        } else {
-          // Final fallback
-          return {
-            uid: uid,
-            email: email,
-            username: email.split('@')[0],
-            createdAt: new Date(),
-            lastLogin: new Date()
-          };
-        }
+        return null;
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error getting user data:', error);
       throw error;
     }
   }
 
-  // Helper method to create user document
-  private async createUserDocument(uid: string, email: string, username: string) {
+  async updateUserProfile(userId: string, username: string): Promise<void> {
     try {
-      await setDoc(doc(this.firestore, 'users', uid), {
+      // Update Firebase Auth profile
+      if (this.auth.currentUser) {
+        await updateProfile(this.auth.currentUser, { displayName: username });
+      }
+      
+      // Update Firestore user document
+      const userDocRef = doc(this.firestore, 'users', userId);
+      await setDoc(userDocRef, {
         username: username,
-        email: email,
-        createdAt: new Date(),
-        lastLogin: new Date()
-      });
-    } catch (error) {
-      console.error('Error creating user document:', error);
+        displayName: username
+      }, { merge: true }); // Merge to update only these fields
+      
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
       throw error;
     }
   }
 
-  // Update user profile (username)
-  async updateProfile(newUsername: string): Promise<void> {
-    const user = this.auth.currentUser;
-    if (!user) throw new Error('No user logged in');
-    
-    await updateDoc(doc(this.firestore, 'users', user.uid), {
-      username: newUsername
-    });
-  }
-
-  // Update password
-  async updatePassword(currentPassword: string, newPassword: string): Promise<void> {
-    const user = this.auth.currentUser;
-    if (!user || !user.email) throw new Error('No user logged in');
-
-    // Re-authenticate user
-    const credential = EmailAuthProvider.credential(user.email, currentPassword);
-    await reauthenticateWithCredential(user, credential);
-    
-    // Update password
-    await updatePassword(user, newPassword);
-  }
-
-  // Delete user account
-  async deleteAccount(password: string): Promise<void> {
-    const user = this.auth.currentUser;
-    if (!user || !user.email) throw new Error('No user logged in');
-
-    // Re-authenticate user
-    const credential = EmailAuthProvider.credential(user.email, password);
-    await reauthenticateWithCredential(user, credential);
-    
-    // Delete user data from Firestore
-    await deleteDoc(doc(this.firestore, 'users', user.uid));
-    
-    // Delete user from Firebase Auth
-    await deleteUser(user);
-  }
-
-  // Get user profile by UID
-  async getUserProfile(uid: string): Promise<any> {
-    const userDoc = await getDoc(doc(this.firestore, 'users', uid));
-    if (userDoc.exists()) {
-      return userDoc.data();
+  // Workout Methods
+  async loadWorkouts(userId: string): Promise<Workout[]> {
+    try {
+      const userDocRef = doc(this.firestore, 'users', userId);
+      const workoutsRef = collection(userDocRef, 'workouts');
+      const q = query(workoutsRef, orderBy('date', 'desc'));
+      
+      const querySnapshot = await getDocs(q);
+      
+      const workouts = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          date: data['date']?.toDate ? data['date'].toDate() : data['date']
+        } as Workout;
+      });
+      
+      return workouts;
+    } catch (error: any) {
+      console.error('Error loading workouts:', error);
+      throw error;
     }
-    return null;
+  }
+
+  async addWorkout(userId: string, workout: Omit<Workout, 'id'>): Promise<string> {
+    try {
+      const userDocRef = doc(this.firestore, 'users', userId);
+      const workoutsRef = collection(userDocRef, 'workouts');
+      
+      const docRef = await addDoc(workoutsRef, {
+        ...workout,
+        date: new Date()
+      });
+      
+      return docRef.id;
+    } catch (error: any) {
+      console.error('Error adding workout:', error);
+      throw error;
+    }
+  }
+
+  async deleteWorkout(userId: string, workoutId: string): Promise<void> {
+    try {
+      const workoutDocRef = doc(this.firestore, 'users', userId, 'workouts', workoutId);
+      await deleteDoc(workoutDocRef);
+    } catch (error: any) {
+      console.error('Error deleting workout:', error);
+      throw error;
+    }
+  }
+
+  // Location Methods
+  async loadLocations(userId: string): Promise<Location[]> {
+    try {
+      const userDocRef = doc(this.firestore, 'users', userId);
+      const locationsRef = collection(userDocRef, 'locations');
+      const q = query(locationsRef, orderBy('savedAt', 'desc'));
+      
+      const querySnapshot = await getDocs(q);
+      
+      const locations = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          timestamp: data['timestamp']?.toDate ? data['timestamp'].toDate() : data['timestamp'],
+          savedAt: data['savedAt']?.toDate ? data['savedAt'].toDate() : data['savedAt']
+        } as Location;
+      });
+      
+      return locations;
+    } catch (error: any) {
+      console.error('Error loading locations:', error);
+      throw error;
+    }
+  }
+
+  async saveLocation(userId: string, location: Omit<Location, 'id' | 'savedAt'>): Promise<string> {
+    try {
+      const userDocRef = doc(this.firestore, 'users', userId);
+      const locationsRef = collection(userDocRef, 'locations');
+      
+      const docRef = await addDoc(locationsRef, {
+        ...location,
+        savedAt: new Date()
+      });
+      
+      return docRef.id;
+    } catch (error: any) {
+      console.error('Error saving location:', error);
+      throw error;
+    }
+  }
+
+  async deleteLocation(userId: string, locationId: string): Promise<void> {
+    try {
+      const locationDocRef = doc(this.firestore, 'users', userId, 'locations', locationId);
+      await deleteDoc(locationDocRef);
+    } catch (error: any) {
+      console.error('Error deleting location:', error);
+      throw error;
+    }
   }
 }

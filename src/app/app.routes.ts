@@ -1,11 +1,7 @@
-import { ApplicationConfig } from '@angular/core';
-import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
-import { provideAuth, getAuth } from '@angular/fire/auth';
-import { environment } from '../environments/environment';
+import { Routes } from '@angular/router';
+import { AppComponent } from './app.component';
 
-export const appConfig: ApplicationConfig = {
-  providers: [
-    provideFirebaseApp(() => initializeApp(environment.firebaseConfig)),
-    provideAuth(() => getAuth())
-  ]
-};
+export const routes: Routes = [
+  { path: '', component: AppComponent },
+  { path: '**', redirectTo: '' }
+];
