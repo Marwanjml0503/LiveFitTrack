@@ -34,6 +34,15 @@
 </nav>
 
 <div class="container">
+  <!-- Premium Success Banner -->
+  <div *ngIf="isPremium()" class="premium-banner">
+    <div class="premium-content">
+      <h3>🎉 Welcome to Premium!</h3>
+      <p>You now have access to all premium features including smart notifications and email progress tracking!</p>
+      <button (click)="isPremium.set(false)" class="btn-secondary">Awesome!</button>
+    </div>
+  </div>
+
   <!-- Show login/register when not authenticated -->
   <div *ngIf="!(user$ | async)" class="auth-page">
     <div class="auth-header">
@@ -156,7 +165,7 @@
           <div class="stat-card">
             <div class="stat-icon">⭐</div>
             <div class="stat-info">
-              <h3>Member</h3>
+              <h3>{{ isPremium() ? 'Premium' : 'Basic' }}</h3>
               <p>Account Type</p>
             </div>
           </div>
@@ -174,8 +183,7 @@
         <div class="action-card" (click)="activeSection.set('location')">
           <div class="action-icon">📍</div>
           <h4>Location Services</h4>
-          <p>Save and manage your workout locations<br><br></p>
-          <div style="height: 20px;"></div>
+          <p>Save and manage your workout locations</p>
           <button class="btn-action">Check Location →</button>
         </div>
         
@@ -365,7 +373,8 @@
           <h2>{{ getDisplayName(user) }}</h2>
           <p class="user-email">{{ user.email }}</p>
           <div class="profile-stats">
-            <span class="member-status">⭐ Registered Member</span>
+            <span *ngIf="isPremium()" class="premium-status">⭐ Premium Member</span>
+            <span *ngIf="!isPremium()" class="free-status">⭐ Registered Member</span>
             <span>Member since {{ getMemberSince() }}</span>
           </div>
         </div>
@@ -377,6 +386,15 @@
           <div class="action-content">
             <h4>Edit Profile</h4>
             <p>Update your username and personal information</p>
+          </div>
+        </div>
+
+        <!-- Upgrade to Premium Card -->
+        <div class="profile-action-card" (click)="openUpgradeModal()">
+          <div class="action-icon">⭐</div>
+          <div class="action-content">
+            <h4>Upgrade to Premium</h4>
+            <p>Unlock notifications and email progress tracking</p>
           </div>
         </div>
       </div>
@@ -405,6 +423,96 @@
           <p *ngIf="profileUpdateSuccess()" class="success">{{ profileUpdateSuccess() }}</p>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Upgrade Premium Modal -->
+<div *ngIf="showUpgradeModal()" class="modal-overlay">
+  <div class="modal premium-modal">
+    <div class="modal-header">
+      <h2>🚀 Upgrade to Premium</h2>
+      <p>Unlock the full potential of your fitness journey</p>
+    </div>
+
+    <!-- Pricing Card -->
+    <div class="pricing-card">
+      <div class="price">RM5<span>/month</span></div>
+      <p class="price-description">Billed monthly, cancel anytime</p>
+    </div>
+
+    <!-- Features List -->
+    <div class="premium-features-list">
+      <h3>✨ What You'll Get</h3>
+      
+      <div class="feature-item">
+        <div class="feature-icon">🔔</div>
+        <div class="feature-text">
+          <strong>Smart Workout Reminders</strong>
+          <small>Get notified about your scheduled workouts and fitness goals</small>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">📧</div>
+        <div class="feature-text">
+          <strong>Weekly Progress Emails</strong>
+          <small>Detailed reports of your workouts, achievements, and progress tracking</small>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">📊</div>
+        <div class="feature-text">
+          <strong>Advanced Analytics</strong>
+          <small>Track your fitness journey with detailed charts and insights</small>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">💾</div>
+        <div class="feature-text">
+          <strong>Unlimited Storage</strong>
+          <small>Save unlimited workouts, locations, and progress photos</small>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-text">
+          <strong>Personalized Goals</strong>
+          <small>AI-powered fitness recommendations based on your progress</small>
+        </div>
+      </div>
+
+      <div class="feature-item">
+        <div class="feature-icon">⭐</div>
+        <div class="feature-text">
+          <strong>Premium Badge</strong>
+          <small>Show off your premium status in your profile</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Processing State -->
+    <div *ngIf="paymentProcessing()" class="payment-processing">
+      <div class="loading-spinner">⏳</div>
+      <p>Processing your upgrade...</p>
+    </div>
+
+    <!-- Payment Button -->
+    <div *ngIf="!paymentProcessing()">
+      <button (click)="processPayment()" class="btn-premium btn-large">
+        💳 Upgrade Now - RM5/month
+      </button>
+
+      <p class="security-note">🔒 Secure payment · 7-day money-back guarantee</p>
+    </div>
+
+    <div class="modal-actions">
+      <button (click)="closeUpgradeModal()" class="btn-secondary" [disabled]="paymentProcessing()">
+        {{ paymentProcessing() ? 'Processing...' : 'Maybe Later' }}
+      </button>
     </div>
   </div>
 </div>

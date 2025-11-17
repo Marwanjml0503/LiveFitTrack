@@ -1023,9 +1023,64 @@ body::before {
   }
 
   /* Add this to your CSS */
-.section-content .section-header {
+  .section-content .section-header {
+    margin-bottom: 25px !important;
+  }
+
+  /* Upgrade Modal Styles */
+.modal-header {
+  text-align: center !important;
   margin-bottom: 25px !important;
 }
+
+.modal-header h2 {
+  color: #ffffff !important;
+  margin-bottom: 10px !important;
+  font-size: 1.8em !important;
+}
+
+.modal-header p {
+  color: #b0b0b0 !important;
+  font-size: 1.1em !important;
+}
+
+.price-description {
+  text-align: center !important;
+  color: #b0b0b0 !important;
+  margin-bottom: 0 !important;
+  font-size: 0.9em !important;
+}
+
+.security-note {
+  text-align: center !important;
+  color: #888 !important;
+  font-size: 0.8em !important;
+  margin-top: 15px !important;
+  margin-bottom: 20px !important;
+}
+
+/* Premium Banner */
+.premium-banner {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  color: white !important;
+  padding: 20px !important;
+  margin-bottom: 20px !important;
+  border-radius: 15px !important;
+  text-align: center !important;
+  border: 1px solid #065f46 !important;
+}
+
+.premium-content h3 {
+  margin-bottom: 10px !important;
+  font-size: 1.3em !important;
+}
+
+/* Enhanced pricing card for modal */
+.premium-modal .pricing-card {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+  border: 2px solid #2563eb !important;
+  box-shadow: 0 10px 30px rgba(37, 99, 235, 0.3) !important;
+} 
 
 }
 
